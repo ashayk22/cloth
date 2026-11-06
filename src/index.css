@@ -1,0 +1,260 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body, #root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    /* clip (not hidden): no horizontal scroll, but html/body don't become scroll
+       containers — keeps position:sticky and ScrollTrigger measurements correct. */
+    overflow-x: clip;
+  }
+  html { scroll-behavior: smooth; }
+  section[id] { scroll-margin-top: 0; }
+  body {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #120708;
+    color: #fbf7f0;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HERO LAYOUT  (CSS Grid — no absolute positioning for content)
+
+   .hero            3 rows:  [ nav ] [ main · 1fr ] [ cards ]
+   .hero__main      2 cols:  [ copy · 1fr ] [ aside · auto ]
+   .hero__cards     4 equal columns
+   Only the photographic background and the decorative mandalas are
+   absolutely positioned (they are not part of the content flow).
+   ════════════════════════════════════════════════════════════════ */
+@layer components {
+  .hero {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100svh;
+    min-height: 660px;
+    max-height: 1080px;
+    overflow: hidden;
+    background: #120708;
+    color: #fbf7f0;
+  }
+
+  /* shared horizontal rhythm — matches the Navbar's own padding steps */
+  .hero__shell {
+    @apply w-full max-w-[1720px] mx-auto px-6 sm:px-12 lg:px-16 xl:px-20;
+  }
+
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  /* Parallax layer is oversized so the ±px mouse drift never exposes an edge */
+  .hero__bg-parallax { position: absolute; inset: -14px; will-change: transform; }
+  .hero__bg-photo {
+    width: 100%;
+    height: 100%;
+    background: url('/assets/hero_bg.jpg') center 42% / cover no-repeat;
+    will-change: transform, opacity;
+  }
+
+  /* Scroll-transition layers ─────────────────────────────────────── */
+  .hero__bg-zoom {
+    position: absolute;
+    inset: 0;
+    /* push-in aims at the model (right of centre), not the frame's middle */
+    transform-origin: 72% 36%;
+    will-change: transform;
+  }
+  .hero__bg-deco { position: absolute; inset: 0; }
+  .hero__scrim {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    /* deep burgundy dark overlay; the bottom resolves to the page's #120708
+       so the hand-off to the collection section has no visible seam */
+    background:
+      linear-gradient(to top, #120708 0%, rgba(18,7,8,0) 34%),
+      radial-gradient(ellipse 75% 70% at 50% 46%, rgba(42,8,18,.38) 0%, rgba(30,7,13,.72) 100%);
+  }
+
+  .hero__intro {
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px 6vh;
+    text-align: center;
+    visibility: hidden;          /* GSAP turns this on; stays off for reduced-motion / mobile */
+    pointer-events: none;
+  }
+  .intro-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 22px clamp(28px, 4.4vw, 76px);
+    margin: clamp(32px, 6vh, 64px) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .intro-link {
+    pointer-events: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+  .intro-link__line {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 1px;
+    background: #dfbd87;
+    transform: scaleX(.25);
+    transform-origin: center;
+    opacity: .55;
+    transition: transform .6s cubic-bezier(.22,1,.36,1), opacity .6s;
+  }
+  .intro-link:hover .intro-link__line,
+  .intro-link:focus-visible .intro-link__line { transform: scaleX(1); opacity: 1; }
+
+  .hero__nav { position: relative; z-index: 30; }
+
+  .hero__main {
+    position: relative;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 3rem;
+    align-items: center;
+    min-height: 0;
+    padding-bottom: 11vh;
+  }
+  /* the aside sits closer to the viewport edge than the copy does */
+  @media (min-width: 1024px) {
+    .hero__main { padding-right: clamp(32px, 3.4vw, 64px); }
+  }
+
+  .hero__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .hero__aside {
+    display: none;
+    align-self: start;
+    margin-top: 10vh;
+    column-gap: clamp(28px, 3.2vw, 48px);
+  }
+  @media (min-width: 1024px) {
+    .hero__aside { display: flex; align-items: flex-start; }
+  }
+
+  .hero__cards-wrap { position: relative; z-index: 20; }
+  .hero__cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: clamp(12px, 5vw, 84px);
+    width: min(64vw, 1120px);
+    margin-inline: auto;
+    padding-bottom: clamp(16px, 2.8vh, 28px);
+  }
+  @media (max-width: 767px) {
+    .hero__cards { width: calc(100% - 32px); column-gap: 10px; }
+  }
+
+  /* ── Vertical indicator: numbers | rail, dot rides the rail ── */
+  .vindicator {
+    --pitch: 52px;
+    display: grid;
+    grid-template-columns: auto 14px;
+    grid-template-rows: repeat(4, var(--pitch));
+    column-gap: 14px;
+    align-items: center;
+    justify-items: end;
+  }
+  .vindicator__rail {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    justify-self: center;
+    align-self: stretch;
+    width: 1px;
+    margin-block: calc(var(--pitch) / 2);
+    background: linear-gradient(to bottom, rgba(216,173,114,.75), rgba(216,173,114,.25));
+  }
+  .vindicator__dot {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    width: 9px;
+    height: 9px;
+    border-radius: 9999px;
+    background: #e3b97c;
+    box-shadow: 0 0 10px 2px rgba(227,185,124,.65);
+    transform: translateY(calc(var(--i, 0) * var(--pitch)));
+    transition: transform .45s cubic-bezier(.22,1,.36,1);
+    pointer-events: none;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE / TABLET  — hero re-framing. Desktop (≥1024px) is untouched.
+   The hero photo is 16:9 with the model right of centre; on narrow
+   viewports `cover` crops to the middle, so slide the crop to her.
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+  .hero__bg-photo { background-position: 86% 42%; }
+}
+@media (max-width: 767px) {
+  /* Phones: static page — no CSS transitions/animations either */
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+  html { scroll-behavior: auto; }
+  .hero { min-height: 640px; }
+  .hero__bg-zoom { transform-origin: 55% 30%; }
+  /* copy sits low (on the dark shade); photo's subject stays in the upper half */
+  .hero__main { align-items: end; padding-bottom: 18px; column-gap: 0; }
+  .hero__cards { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+}
+
+/* Editorial serif font */
+.font-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* UI sans font */
+.font-sans-ui {
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Thin page scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #14070a; }
+::-webkit-scrollbar-thumb { background: #3a1a12; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #c59e66; }
